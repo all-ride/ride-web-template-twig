@@ -2,6 +2,7 @@
 
 namespace ride\web\template\twig;
 
+use \Exception;
 use \Twig_Extension;
 use \Twig_SimpleFilter;
 use \Twig_SimpleFunction;
@@ -26,6 +27,7 @@ class TwigExtension extends Twig_Extension {
             new Twig_SimpleFunction('image', array($this, 'functionImage'), array('needs_context' => true)),
             new Twig_SimpleFunction('translate', array($this, 'functionTranslate'), array('needs_context' => true)),
             new Twig_SimpleFunction('url', array($this, 'functionUrl'), array('needs_context' => true)),
+            new Twig_SimpleFunction('isGranted', array($this, 'functionIsGranted'), array('needs_context' => true)),
         );
     }
 
@@ -34,9 +36,13 @@ class TwigExtension extends Twig_Extension {
      * @return array An array of filters
      */
     public function getFilters() {
-        return array(
+        $filters = array(
             new Twig_SimpleFilter('type', 'gettype'),
         );
+        if(function_exists(krumo)) {
+            $filters[] = new Twig_SimpleFilter('krumo', 'krumo'),
+        }
+        return $filters;
     }
 
     /**
@@ -149,6 +155,33 @@ class TwigExtension extends Twig_Extension {
         $router = $context['app']['system']->getDependencyInjector()->get('ride\\library\\router\\Router');
 
         return $router->getRouteContainer()->getUrl($context['app']['url']['script'], $id, $parameters);
+    }
+
+    /**
+     * [isGranted description]
+     * @param  array $params  [description]
+     * @return boolean          [description]
+     */
+    public function functionIsGranted($context, $params) {
+        if (!isset($params['route']) && !isset($params['url']) && !isset($params['permission'])) {
+            throw new Exception('No route, URL or permission provided');
+        }
+
+        if (!isset($context['app']['system'])) {
+            throw new Exception('Could not check permission: system is not available in the app variable');
+        }
+
+        $securityManager = $context['app']['system']->getDependencyInjector()->get('ride\\library\\security\\SecurityManager');
+
+        if (isset($params['route'])) {
+            return $securityManager->isPathAllowed($params['route']);
+        } elseif (isset($params['url'])) {
+            return $securityManager->isUrlAllowed($params['url']);
+        } elseif ($securityManager->isPermissionGranted($params['permission'])) {
+            return true;
+        }
+
+        return false;
     }
 
 }
