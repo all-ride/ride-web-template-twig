@@ -40,7 +40,7 @@ class TwigExtension extends Twig_Extension {
             new Twig_SimpleFilter('type', 'gettype'),
         );
         if(function_exists(krumo)) {
-            $filters[] = new Twig_SimpleFilter('krumo', 'krumo'),
+            $filters[] = new Twig_SimpleFilter('krumo', 'krumo');
         }
         return $filters;
     }
